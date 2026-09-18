@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE LAST HOPE</title>
+<style>
+:root{
+  --cy:#8fe3ff; --cy-dim:rgba(143,227,255,.55); --am:#ffc46b; --red:#ff6b6b;
+  --bg:#070a0f; --panel:rgba(9,15,21,.78); --panel2:rgba(12,20,28,.92);
+  --line:rgba(143,227,255,.28); --line2:rgba(143,227,255,.14);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;}
+body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;color:#e8f2f8;
+  -webkit-user-select:none;user-select:none;}
+.hidden{display:none !important;}
+.layer{position:fixed;inset:0;}
+#app{position:fixed;inset:0;z-index:0;}
+#app canvas{display:block;}
+
+/* ---------- generic ---------- */
+.btn{pointer-events:auto;cursor:pointer;background:var(--panel);border:1px solid var(--line);
+  color:var(--cy);letter-spacing:.32em;text-indent:.32em;font-size:13px;font-weight:600;
+  padding:14px 40px;min-width:300px;text-align:center;transition:all .18s ease;text-transform:uppercase;}
+.btn:hover{background:rgba(143,227,255,.12);border-color:var(--cy);box-shadow:0 0 22px rgba(143,227,255,.25),inset 0 0 14px rgba(143,227,255,.08);}
+.btn:active{transform:scale(.985);}
+.btn.small{min-width:0;padding:9px 22px;font-size:11px;}
+.btn.warn{color:var(--am);border-color:rgba(255,196,107,.35);}
+.btn.warn:hover{background:rgba(255,196,107,.1);border-color:var(--am);box-shadow:0 0 22px rgba(255,196,107,.2);}
+.kbd{display:inline-block;min-width:26px;padding:2px 7px;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;background:rgba(143,227,255,.08);color:var(--cy);font-size:12px;font-weight:700;text-align:center;}
+.panel{background:var(--panel2);border:1px solid var(--line);box-shadow:0 12px 60px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4);}
+
+/* ---------- vignette ---------- */
+#vignette{z-index:5;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.42) 100%);}
+
+/* ---------- fade ---------- */
+#fade{z-index:40;pointer-events:none;background:#000;opacity:1;transition:opacity .7s ease;}
+
+/* ---------- letterbox ---------- */
+.lb{position:fixed;left:0;right:0;height:0;background:#000;z-index:35;transition:height .9s cubic-bezier(.6,0,.3,1);}
+#lbTop{top:0;} #lbBot{bottom:0;}
+.lb.on{height:10vh;}
+
+/* ---------- main menu ---------- */
+#menu{z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  background:radial-gradient(1200px 700px at 50% 115%,rgba(48,38,84,.55),transparent 65%),
+             radial-gradient(900px 500px at 50% -10%,rgba(24,52,74,.5),transparent 60%), #05070c;}
+#menuBgCanvas{position:absolute;inset:0;width:100%;height:100%;}
+#menuInner{position:relative;display:flex;flex-direction:column;align-items:center;}
+#menuKicker{letter-spacing:.6em;text-indent:.6em;font-size:12px;color:var(--cy-dim);margin-bottom:18px;}
+#menuTitle{font-size:clamp(44px,7.5vw,92px);font-weight:200;letter-spacing:.34em;text-indent:.34em;color:#eaf7ff;
+  text-shadow:0 0 34px rgba(143,227,255,.5),0 0 90px rgba(143,227,255,.28);white-space:nowrap;}
+#menuTitle b{font-weight:600;color:var(--cy);}
+#menuQuote{margin:20px 0 46px;font-size:14px;font-style:italic;color:rgba(214,232,242,.68);letter-spacing:.06em;text-align:center;max-width:560px;line-height:1.7;}
+#menuQuote i{color:var(--am);font-style:italic;}
+#menuBtns{display:flex;flex-direction:column;gap:14px;align-items:center;}
+#menuFoot{position:absolute;bottom:26px;font-size:11px;letter-spacing:.28em;color:rgba(160,190,205,.35);text-indent:.28em;}
+
+/* ---------- settings ---------- */
+#settings{z-index:52;display:flex;align-items:center;justify-content:center;background:rgba(3,6,10,.72);}
+#settingsPanel{width:440px;padding:34px 40px;}
+#settingsPanel h2{font-weight:300;letter-spacing:.4em;font-size:18px;color:var(--cy);margin-bottom:28px;text-align:center;}
+.setRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;}
+.setRow label{font-size:12px;letter-spacing:.18em;color:rgba(214,232,242,.8);}
+.setRow input[type=range]{width:180px;accent-color:var(--cy);pointer-events:auto;}
+.setRow select,.setRow input[type=checkbox]{pointer-events:auto;accent-color:var(--cy);
+  background:var(--panel);color:var(--cy);border:1px solid var(--line);padding:5px 10px;font-size:12px;letter-spacing:.1em;}
+#btnSetBack{margin-top:8px;width:100%;}
+
+/* ---------- HUD ---------- */
+#hud{z-index:10;pointer-events:none;font-size:14px;}
+#objectivePanel{position:fixed;top:22px;left:22px;max-width:340px;background:var(--panel);
+  border:1px solid var(--line2);border-left:2px solid var(--cy);padding:12px 16px;transition:opacity .4s;}
+#objLabel{font-size:10px;letter-spacing:.34em;color:var(--cy-dim);margin-bottom:5px;}
+#objText{font-size:14px;line-height:1.5;color:#e8f2f8;}
+#objectivePanel.flash{animation:objFlash .8s ease;}
+@keyframes objFlash{0%{box-shadow:0 0 0 rgba(143,227,255,0);}30%{box-shadow:0 0 26px rgba(143,227,255,.5);}100%{box-shadow:0 0 0 rgba(143,227,255,0);}}
+
+#clueBar{position:fixed;top:22px;right:22px;display:flex;gap:8px;align-items:center;}
+.clueIcon{width:40px;height:40px;border:1px solid rgba(255,196,107,.4);background:rgba(20,16,8,.7);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(255,196,107,.15);}
+.clueIcon img{width:28px;height:28px;}
+
+#petaloWrap{position:fixed;left:22px;bottom:22px;display:flex;align-items:center;gap:10px;opacity:.9;}
+#petaloDot{width:12px;height:12px;border-radius:50%;background:var(--cy);box-shadow:0 0 12px var(--cy);}
+#petaloDot.ping{animation:petPing 1s ease;}
+@keyframes petPing{0%{transform:scale(1);}30%{transform:scale(2.1);box-shadow:0 0 26px var(--cy);}100%{transform:scale(1);}}
+#petaloLabel{font-size:10px;letter-spacing:.3em;color:var(--cy-dim);}
+
+#hintBar{position:fixed;bottom:22px;right:22px;font-size:11.5px;letter-spacing:.14em;color:rgba(200,225,238,.55);
+  background:rgba(8,12,17,.55);padding:9px 14px;border:1px solid rgba(143,227,255,.1);line-height:2;text-align:right;}
+#hintBar .kbd{font-size:10px;min-width:20px;padding:1px 5px;}
+
+#prompt{position:fixed;left:50%;bottom:19%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
+  background:var(--panel);border:1px solid var(--line);padding:11px 20px;animation:promptIn .25s ease;}
+@keyframes promptIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+#promptText{font-size:14px;letter-spacing:.06em;}
+
+#dialogue{position:fixed;left:50%;bottom:9%;transform:translateX(-50%);max-width:660px;min-width:420px;
+  background:var(--panel2);border:1px solid var(--line);padding:14px 22px 13px;animation:promptIn .25s ease;}
+#dlgName{font-size:10px;letter-spacing:.4em;color:var(--cy);margin-bottom:6px;}
+#dlgText{font-size:15px;line-height:1.6;color:#eaf4fa;min-height:22px;}
+#dlgNext{position:absolute;right:12px;bottom:8px;font-size:9px;color:var(--cy-dim);letter-spacing:.2em;animation:blink 1.2s infinite;}
+@keyframes blink{50%{opacity:.25;}}
+
+#notify{position:fixed;top:9%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;
+  animation:notifyIn .45s cubic-bezier(.2,.9,.3,1.2);}
+@keyframes notifyIn{from{opacity:0;transform:translateX(-50%) translateY(-16px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+#notifyTitle{font-size:12px;letter-spacing:.5em;text-indent:.5em;color:var(--cy);margin-bottom:7px;}
+#notifyTitle.gold{color:var(--am);} #notifyTitle.red{color:var(--red);}
+#notifySub{font-size:17px;color:#f2f9fd;text-shadow:0 2px 14px rgba(0,0,0,.8);letter-spacing:.04em;}
+
+#feedback{position:fixed;top:34%;left:50%;transform:translateX(-50%);font-size:26px;letter-spacing:.3em;text-indent:.3em;
+  font-weight:300;animation:feedPop .9s ease;text-shadow:0 0 30px currentColor;}
+@keyframes feedPop{0%{opacity:0;transform:translateX(-50%) scale(.7);}20%{opacity:1;transform:translateX(-50%) scale(1.06);}35%{transform:translateX(-50%) scale(1);}80%{opacity:1;}100%{opacity:0;}}
+
+#seqDots{position:fixed;bottom:26%;left:50%;transform:translateX(-50%);display:flex;gap:14px;}
+.seqDot{width:14px;height:14px;border-radius:50%;border:1px solid var(--cy-dim);background:transparent;transition:all .2s;}
+.seqDot.on{background:var(--cy);box-shadow:0 0 14px var(--cy);}
+
+#chapter{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;background:rgba(0,0,0,.25);animation:chapterIn .8s ease;}
+@keyframes chapterIn{from{opacity:0;}to{opacity:1;}}
+#chapterNum{font-size:13px;letter-spacing:.7em;text-indent:.7em;color:var(--cy-dim);margin-bottom:14px;}
+#chapterTitle{font-size:44px;font-weight:200;letter-spacing:.3em;text-indent:.3em;color:#eef7fd;text-shadow:0 0 40px rgba(143,227,255,.4);} 
+
+/* ---------- pause ---------- */
+#pause{z-index:45;display:flex;align-items:center;justify-content:center;background:rgba(3,6,10,.68);}
+#pausePanel{display:flex;flex-direction:column;align-items:center;gap:14px;padding:44px 60px;}
+#pausePanel h2{font-weight:200;letter-spacing:.5em;text-indent:.5em;font-size:24px;color:var(--cy);margin-bottom:20px;}
+#pauseControls{margin-top:22px;font-size:11.5px;line-height:2.2;letter-spacing:.14em;color:rgba(200,225,238,.6);text-align:center;}
+
+/* ---------- puzzle modal ---------- */
+#puzzle{z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(3,6,10,.65);pointer-events:auto;cursor:default;}
+#puzPanel{width:560px;padding:30px 36px 26px;position:relative;pointer-events:auto;cursor:default;}
+#puzTitle{font-weight:300;letter-spacing:.4em;font-size:16px;color:var(--cy);text-align:center;margin-bottom:6px;}
+#puzHint{font-size:11.5px;color:rgba(200,225,238,.55);text-align:center;letter-spacing:.1em;margin-bottom:22px;line-height:1.6;}
+#puzSlots{display:flex;justify-content:center;gap:14px;margin-bottom:24px;min-height:76px;}
+.puzSlot{width:72px;height:72px;border:1px dashed rgba(143,227,255,.35);background:rgba(10,18,26,.6);
+  display:flex;align-items:center;justify-content:center;cursor:pointer !important;pointer-events:auto !important;transition:border-color .15s;}
+.puzSlot:hover{border-color:var(--cy);}
+.puzSlot img{width:48px;height:48px;pointer-events:none !important;user-select:none !important;-webkit-user-drag:none !important;}
+.puzSlot .q{font-size:30px;color:rgba(143,227,255,.22);font-weight:200;pointer-events:none !important;user-select:none !important;}
+#puzSymbols{display:flex;justify-content:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.puzSym{width:76px;height:76px;border:1px solid var(--line2);background:rgba(10,18,26,.75);cursor:pointer !important;
+  pointer-events:auto !important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:all .15s;}
+.puzSym:hover{border-color:var(--cy);background:rgba(143,227,255,.09);box-shadow:0 0 16px rgba(143,227,255,.18);}
+.puzSym img{width:38px;height:38px;pointer-events:none !important;user-select:none !important;-webkit-user-drag:none !important;}
+.puzSym span{font-size:8.5px;letter-spacing:.16em;color:var(--cy-dim);pointer-events:none !important;user-select:none !important;}
+#puzMsg{min-height:20px;text-align:center;font-size:13px;letter-spacing:.2em;color:var(--red);margin-bottom:14px;}
+#puzMsg.ok{color:var(--am);}
+#puzBtns{display:flex;gap:12px;justify-content:center;}
+#btnPuzClose{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--cy-dim);font-size:20px;cursor:pointer !important;pointer-events:auto !important;padding:6px;}
+#btnPuzClose:hover{color:var(--cy);}
+#puzPanel.shake{animation:shake .45s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-12px);}40%{transform:translateX(10px);}60%{transform:translateX(-7px);}80%{transform:translateX(4px);}}
+#puzPanel.good{border-color:var(--am);box-shadow:0 0 50px rgba(255,196,107,.35);}
+
+body.modalOpen{cursor:default !important;}
+body.modalOpen canvas{pointer-events:none !important;}
+
+/* ---------- ending ---------- */
+#ending{z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(1000px 600px at 50% 120%,rgba(255,196,107,.16),transparent 60%),rgba(4,7,11,.96);}
+#endKicker{letter-spacing:.6em;text-indent:.6em;font-size:12px;color:var(--am);margin-bottom:20px;}
+#endTitle{font-size:clamp(34px,5.5vw,64px);font-weight:200;letter-spacing:.3em;text-indent:.3em;color:#fff8ec;
+  text-shadow:0 0 44px rgba(255,196,107,.45);margin-bottom:26px;}
+#endingText{max-width:620px;text-align:center;font-size:15px;line-height:2;color:rgba(232,242,248,.82);margin-bottom:44px;letter-spacing:.04em;}
+#endBtns{display:flex;gap:16px;}
+
+/* ---------- story ---------- */
+#story{z-index:48;display:flex;align-items:center;justify-content:center;background:#020305;cursor:pointer;pointer-events:auto;}
+#storyText{max-width:680px;padding:0 30px;text-align:center;font-size:17px;line-height:2.3;letter-spacing:.05em;color:rgba(226,240,248,.9);}
+#storyText p{opacity:0;transition:opacity 1.4s ease;margin-bottom:10px;}
+#storyText p.on{opacity:1;}
+#storyText .sig{color:var(--cy);font-style:italic;}
+#storySkip{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.4em;color:rgba(160,190,205,.4);animation:blink 1.6s infinite;}
+
+/* ---------- exit ---------- */
+#exitScreen{z-index:56;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020305;gap:26px;}
+#exitScreen h2{font-weight:200;letter-spacing:.4em;font-size:22px;color:var(--cy-dim);}
+#exitScreen p{color:rgba(200,225,238,.5);font-size:13px;letter-spacing:.1em;}
+
+/* ---------- combat HUD ---------- */
+#playerHpWrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
+  background:var(--panel);border:1px solid var(--line);padding:7px 16px;border-radius:4px;box-shadow:0 0 20px rgba(0,0,0,.6);}
+#playerHpLabel{font-size:11px;font-weight:700;letter-spacing:.25em;color:var(--cy);}
+#playerHpTrack{width:180px;height:9px;background:rgba(255,255,255,.08);border:1px solid var(--line2);border-radius:3px;overflow:hidden;position:relative;}
+#playerHpFill{width:100%;height:100%;background:linear-gradient(90deg,#ff4444,#ffaa44,#8fe3ff);transition:width .25s ease;}
+#playerHpVal{font-size:11px;font-family:monospace;letter-spacing:.1em;color:#eaf4fa;min-width:32px;}
+
+#monsterHpWrap{position:fixed;top:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:rgba(18,7,12,.82);border:1px solid rgba(255,107,107,.4);padding:10px 24px;border-radius:4px;box-shadow:0 0 35px rgba(255,50,50,.25);transition:opacity .3s;}
+#monsterName{font-size:12px;font-weight:700;letter-spacing:.4em;color:#ff8888;text-transform:uppercase;}
+#monsterHpTrack{width:320px;height:10px;background:rgba(0,0,0,.6);border:1px solid rgba(255,107,107,.3);border-radius:3px;overflow:hidden;}
+#monsterHpFill{width:100%;height:100%;background:linear-gradient(90deg,#990022,#ff3344);transition:width .2s ease;}
+
+#weaponHud{position:fixed;bottom:24px;right:24px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);padding:8px 14px;border-radius:4px;}
+#weaponIcon{width:24px;height:24px;fill:var(--cy);}
+#weaponCombo{display:flex;gap:4px;}
+.comboPip{width:8px;height:8px;border-radius:50%;border:1px solid var(--cy);background:transparent;}
+.comboPip.active{background:var(--cy);box-shadow:0 0 10px var(--cy);}
+
+/* ---------- clock puzzle modal ---------- */
+#clockPuzzle{z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(3,6,10,.65);pointer-events:auto;cursor:default;}
+#clockPanel{width:460px;padding:28px 34px;position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:auto;cursor:default;}
+#clockFaceWrap{position:relative;width:180px;height:180px;border-radius:50%;border:2px solid var(--line);background:radial-gradient(circle,#0b1520,#05090f);box-shadow:0 0 25px rgba(143,227,255,.15);margin:18px 0;}
+.clockTick{position:absolute;width:2px;height:10px;background:var(--cy-dim);left:50%;top:6px;transform-origin:bottom center;transform:translateX(-50%);}
+#clockHourHand{position:absolute;width:4px;height:50px;background:var(--am);left:50%;top:40px;transform-origin:50% 100%;transform:translateX(-50%) rotate(0deg);border-radius:2px;}
+#clockMinHand{position:absolute;width:2.5px;height:72px;background:var(--cy);left:50%;top:18px;transform-origin:50% 100%;transform:translateX(-50%) rotate(0deg);border-radius:2px;}
+#clockPin{position:absolute;width:12px;height:12px;border-radius:50%;background:#eaf7ff;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px #fff;}
+#clockControls{display:flex;gap:18px;margin-bottom:18px;}
+.clockBtnGrp{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.clockBtnGrp span{font-size:11px;letter-spacing:.2em;color:var(--cy-dim);}
+
+/* ---------- key puzzle modal ---------- */
+#keyPuzzle{z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(3,6,10,.65);pointer-events:auto;cursor:default;}
+#keyPanel{width:480px;padding:30px 36px;position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:auto;cursor:default;}
+#keyList{display:flex;gap:14px;margin:22px 0;}
+.keyCard{width:110px;height:125px;border:1px solid var(--line2);background:rgba(10,18,26,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer !important;transition:all .18s ease;pointer-events:auto !important;}
+.keyCard:hover{border-color:var(--cy);background:rgba(143,227,255,.1);box-shadow:0 0 16px rgba(143,227,255,.2);}
+.keyCard.selected{border-color:var(--am);background:rgba(255,196,107,.12);box-shadow:0 0 20px rgba(255,196,107,.25);}
+.keyCard *{pointer-events:none !important;user-select:none !important;}
+.keyCard .keyIcon{font-size:32px;filter:drop-shadow(0 0 8px currentColor);}
+.keyCard span{font-size:10px;letter-spacing:.14em;color:#e8f2f8;text-align:center;}
+
+/* ---------- document reader modal ---------- */
+#docReader{z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(2,4,8,.7);pointer-events:auto;cursor:default;}
+#docPanel{width:540px;max-height:75vh;padding:34px 40px;position:relative;display:flex;flex-direction:column;pointer-events:auto;cursor:default;}
+#docHeader{margin-bottom:16px;border-bottom:1px solid var(--line2);padding-bottom:12px;}
+#docTag{font-size:10px;letter-spacing:.38em;color:var(--am);text-transform:uppercase;margin-bottom:4px;}
+#docTitle{font-size:20px;font-weight:300;letter-spacing:.25em;color:#eaf7ff;}
+#docBody{font-size:14px;line-height:1.9;letter-spacing:.04em;color:rgba(225,238,248,.86);overflow-y:auto;max-height:48vh;padding-right:8px;}
+#docFooter{margin-top:20px;display:flex;justify-content:flex-end;}
+
+/* ---------- death screen ---------- */
+#deathScreen{z-index:58;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(50,5,10,.85) 0%,#000 75%);gap:20px;}
+#deathTitle{font-size:clamp(32px,6vw,60px);font-weight:200;letter-spacing:.4em;text-indent:.4em;color:#ff5555;text-shadow:0 0 40px rgba(255,50,50,.6);}
+#deathSub{font-size:14px;letter-spacing:.15em;color:rgba(255,200,200,.6);max-width:500px;text-align:center;line-height:1.7;}
+
+/* ---------- focus ---------- */
+#focusOverlay{z-index:28;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;background:rgba(3,6,10,.35);}
+#focusOverlay span{font-size:13px;letter-spacing:.4em;color:var(--cy);border:1px solid var(--line);padding:14px 34px;background:var(--panel);animation:blink 1.8s infinite;}
+
+/* ---------- intro cinematic ---------- */
+#introCinematic{z-index:62;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;cursor:pointer;pointer-events:auto;}
+#introSignalWave{display:flex;align-items:center;gap:6px;margin-bottom:24px;height:28px;}
+#introSignalWave span{width:4px;height:8px;background:var(--cy);border-radius:2px;animation:signalPulse 1.2s infinite ease-in-out;}
+#introSignalWave span:nth-child(2){animation-delay:.15s;}
+#introSignalWave span:nth-child(3){animation-delay:.3s;}
+#introSignalWave span:nth-child(4){animation-delay:.45s;}
+#introSignalWave span:nth-child(5){animation-delay:.6s;}
+@keyframes signalPulse{0%,100%{height:6px;opacity:.3;}50%{height:26px;opacity:1;box-shadow:0 0 12px var(--cy);}}
+#introSpeaker{font-size:11px;letter-spacing:.45em;color:var(--cy-dim);margin-bottom:20px;text-transform:uppercase;}
+#introText{max-width:700px;min-height:90px;font-size:clamp(18px,2.6vw,28px);font-weight:300;font-style:italic;letter-spacing:.08em;color:#eaf4fa;text-align:center;line-height:1.8;text-shadow:0 0 24px rgba(143,227,255,.4);transition:opacity .45s ease;padding:0 24px;}
+#introTitleCard{display:flex;flex-direction:column;align-items:center;text-align:center;animation:introTitleAnim 1.2s cubic-bezier(.2,.8,.3,1);}
+@keyframes introTitleAnim{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:scale(1);}}
+#introTitleKicker{font-size:12px;letter-spacing:.6em;color:var(--cy-dim);margin-bottom:14px;}
+#introTitleMain{font-size:clamp(44px,7.5vw,90px);font-weight:200;letter-spacing:.36em;text-indent:.36em;color:#fff;text-shadow:0 0 40px rgba(143,227,255,.6),0 0 100px rgba(143,227,255,.3);white-space:nowrap;}
+#introTitleMain b{font-weight:600;color:var(--cy);}
+#introTitleSub{font-size:13px;letter-spacing:.5em;color:var(--am);margin-top:18px;}
+#introSkip{position:fixed;bottom:28px;font-size:10px;letter-spacing:.35em;color:rgba(160,190,205,.4);animation:blink 1.6s infinite;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="vignette" class="layer"></div>
+
+<!-- HUD -->
+<div id="hud" class="layer hidden">
+  <div id="objectivePanel"><div id="objLabel">OBJECTIVE</div><div id="objText"></div></div>
+  <div id="clueBar"></div>
+  <div id="petaloWrap" class="hidden"><div id="petaloDot"></div><div id="petaloLabel">PETALO</div></div>
+  <div id="hintBar" class="hidden"></div>
+  <div id="prompt" class="hidden"><span class="kbd">E</span><span id="promptText"></span></div>
+  <div id="dialogue" class="hidden"><div id="dlgName"></div><div id="dlgText"></div><div id="dlgNext">▼</div></div>
+  <div id="notify" class="hidden"><div id="notifyTitle"></div><div id="notifySub"></div></div>
+  <div id="feedback" class="hidden"></div>
+  <div id="seqDots" class="hidden"></div>
+
+  <!-- Player HP -->
+  <div id="playerHpWrap" class="hidden">
+    <div id="playerHpLabel">HP</div>
+    <div id="playerHpTrack"><div id="playerHpFill"></div></div>
+    <div id="playerHpVal">100</div>
+  </div>
+
+  <!-- Monster HP / Boss Bar -->
+  <div id="monsterHpWrap" class="hidden">
+    <div id="monsterName">SHADOW STALKER</div>
+    <div id="monsterHpTrack"><div id="monsterHpFill"></div></div>
+  </div>
+
+  <!-- Weapon HUD -->
+  <div id="weaponHud" class="hidden">
+    <span style="font-size:11px;letter-spacing:.2em;color:var(--cy);font-weight:700;">KATANA</span>
+    <div id="weaponCombo">
+      <div class="comboPip" id="pip1"></div>
+      <div class="comboPip" id="pip2"></div>
+      <div class="comboPip" id="pip3"></div>
+    </div>
+  </div>
+</div>
+
+<div id="chapter" class="layer hidden" style="z-index:26"><div id="chapterNum"></div><div id="chapterTitle"></div></div>
+<div id="lbTop" class="lb"></div><div id="lbBot" class="lb"></div>
+<div id="focusOverlay" class="layer hidden"><span>CLICK TO TAKE CONTROL</span></div>
+
+<!-- puzzle -->
+<div id="puzzle" class="layer hidden">
+  <div id="puzPanel" class="panel">
+    <button id="btnPuzClose">✕</button>
+    <div id="puzTitle"></div>
+    <div id="puzHint"></div>
+    <div id="puzSlots"></div>
+    <div id="puzSymbols"></div>
+    <div id="puzMsg"></div>
+    <div id="puzBtns">
+      <button id="btnPuzClear" class="btn small">Clear</button>
+      <button id="btnPuzConfirm" class="btn small warn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- clock puzzle -->
+<div id="clockPuzzle" class="layer hidden">
+  <div id="clockPanel" class="panel">
+    <button id="btnClockClose" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--cy-dim);font-size:20px;cursor:pointer;pointer-events:auto;">✕</button>
+    <div style="font-size:16px;letter-spacing:.35em;color:var(--cy);font-weight:300;">CELESTIAL CLOCK</div>
+    <div id="clockHint" style="font-size:12px;letter-spacing:.1em;color:rgba(200,225,238,.6);margin-top:6px;text-align:center;">Set the clock to the moment the stars fell.</div>
+    <div id="clockFaceWrap">
+      <div id="clockHourHand"></div>
+      <div id="clockMinHand"></div>
+      <div id="clockPin"></div>
+    </div>
+    <div id="clockTimeDisplay" style="font-size:22px;font-family:monospace;letter-spacing:.2em;color:var(--am);margin-bottom:14px;">00:00</div>
+    <div id="clockControls">
+      <div class="clockBtnGrp">
+        <span>HOUR</span>
+        <div style="display:flex;gap:6px;">
+          <button id="btnHourDec" class="btn small" style="min-width:38px;padding:6px 12px;">-</button>
+          <button id="btnHourInc" class="btn small" style="min-width:38px;padding:6px 12px;">+</button>
+        </div>
+      </div>
+      <div class="clockBtnGrp">
+        <span>MINUTE</span>
+        <div style="display:flex;gap:6px;">
+          <button id="btnMinDec" class="btn small" style="min-width:38px;padding:6px 12px;">-5</button>
+          <button id="btnMinInc" class="btn small" style="min-width:38px;padding:6px 12px;">+5</button>
+        </div>
+      </div>
+    </div>
+    <div id="clockMsg" style="min-height:18px;font-size:12px;letter-spacing:.2em;color:var(--red);margin-bottom:12px;"></div>
+    <button id="btnClockConfirm" class="btn small warn" style="width:200px;">Align Mechanism</button>
+  </div>
+</div>
+
+<!-- key puzzle -->
+<div id="keyPuzzle" class="layer hidden">
+  <div id="keyPanel" class="panel">
+    <button id="btnKeyClose" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--cy-dim);font-size:20px;cursor:pointer;pointer-events:auto;">✕</button>
+    <div style="font-size:16px;letter-spacing:.35em;color:var(--cy);font-weight:300;">ARCHIVIST'S VAULT</div>
+    <div id="keyHint" style="font-size:12px;letter-spacing:.1em;color:rgba(200,225,238,.6);margin-top:6px;text-align:center;">Which key fits the ancient seal?</div>
+    <div id="keyList"></div>
+    <div id="keyMsg" style="min-height:18px;font-size:12px;letter-spacing:.2em;color:var(--red);margin-bottom:12px;"></div>
+    <button id="btnKeyConfirm" class="btn small warn" style="width:200px;">Unlock Door</button>
+  </div>
+</div>
+
+<!-- document reader -->
+<div id="docReader" class="layer hidden">
+  <div id="docPanel" class="panel">
+    <button id="btnDocClose" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--cy-dim);font-size:20px;cursor:pointer;pointer-events:auto;">✕</button>
+    <div id="docHeader">
+      <div id="docTag">SURVIVOR LOG</div>
+      <div id="docTitle">A Forgotten Note</div>
+    </div>
+    <div id="docBody"></div>
+    <div id="docFooter">
+      <button id="btnDocCloseBottom" class="btn small">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- death screen -->
+<div id="deathScreen" class="layer hidden">
+  <div id="deathTitle">YOU FELL TO THE SHADOWS</div>
+  <div id="deathSub">The creature was merciless, but the signal still echoes through the ruins. Return to the fight.</div>
+  <button id="btnRespawn" class="btn warn" style="margin-top:16px;">Restart From Checkpoint</button>
+</div>
+
+<!-- pause -->
+<div id="pause" class="layer hidden">
+  <div id="pausePanel" class="panel">
+    <h2>PAUSED</h2>
+    <button id="btnResume" class="btn">Resume</button>
+    <button id="btnRestartL" class="btn">Restart Level</button>
+    <button id="btnPauseSettings" class="btn">Settings</button>
+    <button id="btnQuit" class="btn warn">Main Menu</button>
+    <div id="pauseControls">
+      <span class="kbd">W A S D</span> Move &nbsp; <span class="kbd">MOUSE</span> Camera &nbsp; <span class="kbd">SHIFT</span> Run<br>
+      <span class="kbd">SPACE</span> Jump &nbsp; <span class="kbd">E</span> Interact &nbsp; <span class="kbd">H</span> Petalo Hint &nbsp; <span class="kbd">ESC</span> Pause
+    </div>
+  </div>
+</div>
+
+<!-- menu -->
+<div id="menu" class="layer">
+  <canvas id="menuBgCanvas"></canvas>
+  <div id="menuInner">
+    <div id="menuKicker">A STORY OF RESTORATION</div>
+    <div id="menuTitle">THE <b>LAST</b> HOPE</div>
+    <div id="menuQuote">"If you want to restore what was lost, reach the Creator."<br><i>— the signal</i></div>
+    <div id="menuBtns">
+      <button id="btnStart" class="btn">Start Game</button>
+      <button id="btnContinue" class="btn hidden">Continue</button>
+      <button id="btnSettings" class="btn">Settings</button>
+      <button id="btnExit" class="btn warn">Exit</button>
+    </div>
+  </div>
+  <div id="menuFoot">ARIN'S JOURNEY · A PROTOTYPE</div>
+</div>
+
+<!-- settings -->
+<div id="settings" class="layer hidden">
+  <div id="settingsPanel" class="panel">
+    <h2 id="setTitle">SETTINGS</h2>
+    <div class="setRow"><label>MASTER VOLUME</label><input id="setVolume" type="range" min="0" max="100" value="80"></div>
+    <div class="setRow"><label>MOUSE SENSITIVITY</label><input id="setSens" type="range" min="20" max="200" value="100"></div>
+    <div class="setRow"><label>INVERT Y</label><input id="setInvert" type="checkbox"></div>
+    <div class="setRow"><label>QUALITY</label><select id="setQuality"><option value="high">High</option><option value="low">Low</option></select></div>
+    <button id="btnSetBack" class="btn">Back</button>
+  </div>
+</div>
+
+<!-- story -->
+<div id="story" class="layer hidden"><div id="storyText"></div><div id="storySkip">CLICK TO CONTINUE</div></div>
+
+<!-- intro cinematic -->
+<div id="introCinematic" class="layer hidden">
+  <div id="introSignalWave">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div id="introSpeaker">INCOMING RADIO TRANSMISSION</div>
+  <div id="introText"></div>
+  <div id="introTitleCard" class="hidden">
+    <div id="introTitleKicker">A STORY OF RESTORATION</div>
+    <div id="introTitleMain">THE <b>LAST</b> HOPE</div>
+    <div id="introTitleSub">CHAPTER I &middot; RUINS OF THE SIGNAL</div>
+  </div>
+  <div id="introSkip">CLICK TO SKIP [SPACE]</div>
+</div>
+
+<!-- ending -->
+<div id="ending" class="layer hidden">
+  <div id="endKicker">THE LAST HOPE</div>
+  <div id="endTitle">RESTORATION COMPLETE</div>
+  <div id="endingText"></div>
+  <div id="endBtns">
+    <button id="btnEndContinue" class="btn">Continue Exploring</button>
+    <button id="btnEndRestart" class="btn warn">Main Menu</button>
+  </div>
+</div>
+
+<!-- exit -->
+<div id="exitScreen" class="layer hidden">
+  <h2>THE SIGNAL FADES…</h2>
+  <p>Arin's journey will wait for you. You can close this tab now.</p>
+  <button id="btnExitBack" class="btn">Back</button>
+</div>
+
+<div id="fade" class="layer"></div>
+
+<script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
